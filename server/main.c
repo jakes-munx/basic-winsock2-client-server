@@ -13,37 +13,17 @@
 #include <Windows.h>
 
 #define DEFAULT_BUF_LEN 512
-#define DEFAULT_PORT "8080"
+#define DEFAULT_PORT "1234"
+#define MAX_CLIENTS 10
 
-int main()
+SOCKET SetupSocket(char* port)
 {
-    printf("Starting server...\r\n");
-
-    // Init Winsock
-    WSADATA wsaData;
     int result;
-
     SOCKET listen_socket = INVALID_SOCKET;
     SOCKET client_socket = INVALID_SOCKET;
 
-    // struct sockaddr_in srv;
-
     struct addrinfo *addr_info = NULL;
     struct addrinfo hints;
-
-    int send_result;
-    char recv_buf[DEFAULT_BUF_LEN];
-    int recv_buf_len = DEFAULT_BUF_LEN;
-    char port_number[] = DEFAULT_PORT;
-
-    result = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (result != 0) 
-    {
-        printf("WSAStartup failed. Error: %d\r\n", result);
-        return 1;
-    }
-    printf("WSA startup successful\r\n");
-
 
     ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -53,14 +33,13 @@ int main()
 
     //  Resolve the server address and port
     // getaddrinfo(argv[1], argv[2], &hints, &addr_info);
-    result = getaddrinfo(NULL, port_number, &hints, &addr_info);
+    result = getaddrinfo(NULL, port, &hints, &addr_info);
     if ( result != 0 ) 
     {
         printf("Getaddrinfo failed. Error: %d\r\n", result);
         WSACleanup();
         return 1;
     }
-
     // Init the socket
     listen_socket = socket(addr_info->ai_family, addr_info->ai_socktype, addr_info->ai_protocol);
     // listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -69,7 +48,7 @@ int main()
         WSACleanup();
         return 1;
     }
-    printf("Socket created: %d\r\n", (int)listen_socket);
+    printf("Listening Socket created: %d\r\n", (int)listen_socket);
 
     // srv.sin_family = AF_INET;
     // srv.sin_port = htons(8080);
@@ -90,7 +69,7 @@ int main()
 
     freeaddrinfo(addr_info);
 
-    result = listen(listen_socket, SOMAXCONN);
+    result = listen(listen_socket, MAX_CLIENTS);
     if (result == SOCKET_ERROR) 
     {
         printf("Listen failed. Error: %d\r\n", WSAGetLastError());
@@ -113,6 +92,42 @@ int main()
     // Listen Socket no longer needed.
     closesocket(listen_socket);
 
+    return client_socket;
+}
+
+int main()
+{
+    WSADATA wsaData;
+    int result;
+
+    printf("Starting server...\r\n");
+
+    // struct sockaddr_in srv;
+    int send_result;
+    char recv_buf[DEFAULT_BUF_LEN];
+    int recv_buf_len = DEFAULT_BUF_LEN;
+    char port_number[] = DEFAULT_PORT;
+
+    char user_port[6] = {0};
+    printf("Enter server PORT. Press enter to use %s\r\n", DEFAULT_PORT);
+    fgets(user_port, sizeof(user_port), stdin);
+    user_port[strlen(user_port) - 1] = '\0';    // Remove \n
+
+    if (user_port[0] != 0x00)
+    {
+        strcpy(port_number, user_port);
+    }
+
+    result = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (result != 0) 
+    {
+        printf("WSAStartup failed. Error: %d\r\n", result);
+        return 1;
+    }
+    printf("WSA startup successful\r\n");
+    
+    SOCKET client_socket = SetupSocket(port_number);
+    
     printf("Waiting for data...\r\n");
     
     do
@@ -149,7 +164,8 @@ int main()
     while (result > 0);
 
     result = shutdown(client_socket, SD_SEND);
-    if (result == SOCKET_ERROR) {
+    if (result == SOCKET_ERROR) 
+    {
         printf("Shutdown failed. Error: %d\n", WSAGetLastError());
         closesocket(client_socket);
         WSACleanup();

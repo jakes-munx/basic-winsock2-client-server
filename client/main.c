@@ -14,41 +14,25 @@
 #include <Windows.h>
 
 #define DEFAULT_BUF_LEN 512
-#define DEFAULT_PORT "8080"
-#define DEFAULT_HOST "127.0.0.1"
+#define DEFAULT_PORT "1234"
+#define DEFAULT_SERVER_IP "127.0.0.1"
 
-int main()
+SOCKET ConnectToServer(char* server_ip, char* server_port)
 {
-    WSADATA wsaData;
-    int result;
-
     SOCKET client_socket;
-    // struct sockaddr_in srv;
-
+    struct addrinfo hints;
     struct addrinfo *addr_info = NULL;
     struct addrinfo *ptr = NULL;
-    struct addrinfo hints;
+    
+    int result = 0;
 
-    const char *sendbuf = "BOOM goes the dynamite!";
-    char recv_buf[DEFAULT_BUF_LEN];
-    int recv_buf_len = DEFAULT_BUF_LEN;
-
-    result = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (result != 0) 
-    {
-        printf("WSAStartup failed. Error: %d\r\n", result);
-        return 1;
-    }
-
-    ZeroMemory( &hints, sizeof(hints) );
+    ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
-
-    char host_name[] = DEFAULT_HOST;
-    char port_number[] = DEFAULT_PORT;
+    
     // Resolve the server address and port
-    result = getaddrinfo(host_name, port_number, &hints, &addr_info);
+    result = getaddrinfo(server_ip, server_port, &hints, &addr_info);
     if ( result != 0 ) 
     {
         printf("getaddrinfo failed with error: %d\n", result);
@@ -75,7 +59,7 @@ int main()
         if (result == SOCKET_ERROR) 
         {
             closesocket(client_socket);
-            printf("Failed to connect to %u:%u:%u:%u:%u:%u\r\n", (uint8_t)ptr->ai_addr->sa_data[0], (uint8_t)ptr->ai_addr->sa_data[1], (uint8_t)ptr->ai_addr->sa_data[2], (uint8_t)ptr->ai_addr->sa_data[3], (uint8_t)ptr->ai_addr->sa_data[4], (uint8_t)ptr->ai_addr->sa_data[5]);
+            printf("Failed to connect to %u:%u:%u:%u\r\n", (uint8_t)ptr->ai_addr->sa_data[2], (uint8_t)ptr->ai_addr->sa_data[3], (uint8_t)ptr->ai_addr->sa_data[4], (uint8_t)ptr->ai_addr->sa_data[5]);
             client_socket = INVALID_SOCKET;
             continue;
         }
@@ -90,6 +74,49 @@ int main()
         WSACleanup();
         return 1;
     }
+    return client_socket;
+}
+int main()
+{
+    WSADATA wsaData;
+    int result;
+    SOCKET client_socket;
+    // struct sockaddr_in srv;
+
+    const char *sendbuf = "BOOM goes the dynamite!";
+    char recv_buf[DEFAULT_BUF_LEN];
+    int recv_buf_len = DEFAULT_BUF_LEN;
+
+    char user_ip[20] = {0};
+    char user_port[6] = {0};
+    printf("Enter IP address of server (with colons). Press enter to use %s\r\n", DEFAULT_SERVER_IP);
+    fgets(user_ip, sizeof(user_ip), stdin);
+    user_ip[strlen(user_ip) - 1] = '\0';    // Remove \n
+    printf("Enter server PORT. Press enter to use %s\r\n", DEFAULT_PORT);
+    fgets(user_port, sizeof(user_port), stdin);
+    user_port[strlen(user_port) - 1] = '\0';    // Remove \n
+
+    char host_name[20] = DEFAULT_SERVER_IP;
+    char port_number[5] = DEFAULT_PORT;
+
+    if (user_ip[0] != 0x00)
+    {
+        memset(host_name, 0, sizeof(host_name));
+        strcpy(host_name, user_ip);
+    }
+    if (user_port[0] != 0x00)
+    {
+        strcpy(port_number, user_port);
+    }
+
+    result = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (result != 0) 
+    {
+        printf("WSAStartup failed. Error: %d\r\n", result);
+        return 1;
+    }
+
+    client_socket = ConnectToServer(host_name, port_number);
 
     // Send an initial buffer
     result = send( client_socket, sendbuf, (int)strlen(sendbuf), 0 );

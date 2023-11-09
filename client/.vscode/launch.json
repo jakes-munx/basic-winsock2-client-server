@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/JacquesvdM/Documents/Personal/FTP experi/client",
-      "program": "c:/Users/JacquesvdM/Documents/Personal/FTP experi/client/build/Debug/outDebug",
+      "cwd": "c:/Users/JacquesvdM/Documents/Personal/basic_client_server/client",
+      "program": "c:/Users/JacquesvdM/Documents/Personal/basic_client_server/client/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
