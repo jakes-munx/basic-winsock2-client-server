@@ -1,5 +1,6 @@
-.exe
-.o
+*.exe
+*.o
+*.out
 
 Debug
 Release
